@@ -550,7 +550,7 @@ tasks:
     cmds:
       - #TODO
       - #flake8 or #pylint 
-      - pylint ./dbt_data_transformations_and_dagster_orchestration/dagster_orchestration/dagster_orchestration --disable=R,C
+      - pylint dagster_orchestration --disable=R,C
       - echo 'Successfully lint 🥳 !'
 
   test:

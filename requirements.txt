@@ -25,6 +25,8 @@ dagster-webserver
 dagster-cloud
 dagster_duckdb
 dagster_duckdb_pandas
+dagster-aws
+dagster-pandas
 
 duckdb
 gcsfs
