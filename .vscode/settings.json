@@ -1,0 +1,11 @@
+{
+    // "jupyter.jupyterCommandLineArguments": [
+        
+    //     //Run jupyter lab with the taskfile environment
+    //     "--env", "taskfile.env" 
+    // ],
+    // "jupyter.runStartupCommands": [
+    //     "from dotenv import load_dotenv, find_dotenv",
+    //     "load_dotenv(find_dotenv('taskfile.env'))"
+    // ]    
+}

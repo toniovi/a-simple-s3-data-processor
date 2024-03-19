@@ -1,0 +1,71 @@
+local_duckdb_warehouse:
+  outputs:
+    prod:
+      type: duckdb
+      path: data_transformations_memory.duckdb
+      threads: 24
+
+      extensions:
+        - httpfs
+        - parquet
+      filesystems:
+        - fs: abfs
+          connection_string: "{{ env_var('DBT_ENV_SECRET_AZURE_STORAGE_CONN_STRING') }}"
+
+
+  target: prod
+
+
+local_postgres_warehouse:
+  outputs:
+    prod:
+      type: postgres
+      host: localhost
+      user: "{{ env_var('POSTGRES_USER') }}"
+      password: "{{ env_var('POSTGRES_PASSWORD') }}"
+      port: 5432
+      dbname: "{{ env_var('POSTGRES_DATABASE_NAME') }}"
+      schema: "{{ env_var('POSTGRES_RAW_DATA_SCHEMA') }}"
+      threads: 24
+
+  target: prod
+
+
+
+cloud_databricks_sql_warehouse:
+  outputs:
+    prod:
+      type: databricks
+      schema: default
+      host: "{{ env_var('DATABRICKS_SQL_WAREHOUSE_TOKEN_HOST') }}"
+      http_path: "{{ env_var('DATABRICKS_SQL_WAREHOUSE_TOKEN_HTTP_PATH') }}"
+      token: "{{ env_var('DBT_ENV_SECRET_DATABRICKS_SQL_WAREHOUSE_TOKEN') }}"
+
+  target: prod
+
+cloud_bigquery_datawarehouse:
+  target: prod
+  outputs:
+    prod:
+      type: bigquery
+      method: service-account-json
+      project: "{{ env_var('GCLOUD_PROJECT') }}"
+      dataset: "{{ env_var('GCLOUD_BIGQUERY_DBT_DATASET_NAME') }}"
+      threads: 4 # Must be a value of 1 or greater
+
+      location: EU
+
+      # These fields come from the service account json keyfile
+      keyfile_json:
+        type: "{{ env_var('DBT_ENV_SECRET_SERV_ACC_KEY_TYPE') }}"
+        project_id: "{{ env_var('DBT_ENV_SECRET_SERV_ACC_KEY_PROJECT_ID') }}"
+        private_key_id: "{{ env_var('DBT_ENV_SECRET_SERV_ACC_KEY_PRIVATE_KEY_ID') }}"
+        private_key: "{{ env_var('DBT_ENV_SECRET_SERV_ACC_KEY_PRIVATE_KEY') }}"
+        client_email: "{{ env_var('DBT_ENV_SECRET_SERV_ACC_KEY_CLIENT_EMAIL') }}"
+        client_id: "{{ env_var('DBT_ENV_SECRET_SERV_ACC_KEY_CLIENT_ID') }}"
+        auth_uri: "{{ env_var('DBT_ENV_SECRET_SERV_ACC_KEY_AUTH_URI') }}"
+        token_uri: "{{ env_var('DBT_ENV_SECRET_SERV_ACC_KEY_TOKEN_URI') }}"
+        auth_provider_x509_cert_url: "{{ env_var('DBT_ENV_SECRET_SERV_ACC_KEY_AUTH_PROVIDER_X509_CERT_URL') }}"
+        client_x509_cert_url: "{{ env_var('DBT_ENV_SECRET_SERV_ACC_KEY_CLIENT_X509_CERT_URL') }}"
+
+

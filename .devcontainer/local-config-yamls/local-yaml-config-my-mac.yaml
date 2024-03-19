@@ -1,0 +1,6 @@
+services:
+  devcontainer:
+    volumes:
+      - type: bind
+        source: "${HOME}/Library/CloudStorage/Dropbox/code/local-mounted-folders"
+        target: "${PWD}/local-mounted-folders"

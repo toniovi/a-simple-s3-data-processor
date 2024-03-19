@@ -1,0 +1,68 @@
+name: PUT THE NAME OF YOUR AUTOMATION HERE
+# Now let's schedule the workflow to run every day at 12:00 UTC (and also at 'run mannually')
+on:
+  #schedule:
+    #- cron: '0 7 * * *'  ##Uncomment when ready to automatise ('0 7 * * *' == 'everyday at 7 AM' for ex)
+  workflow_dispatch:
+
+# Here we need to specify all and all secrets that the Github Actions runner will need to effectuate its automatisation  
+env:
+  # For exemple:
+  #DBT_ENV_SECRET_CLIENT_NAME_GCP_SERVICE_ACCOUNT_KEY_JSON: ${{ secrets.DBT_ENV_SECRET_CLIENT_NAME_GCP_SERVICE_ACCOUNT_KEY_JSON }}
+  #OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+  #MISTRAL_API_KEY: ${{ secrets.MISTRAL_API_KEY }}
+
+jobs:
+  THE_NAME_OF_YOUR_JOB_HERE: ## IMOPORTANT NOTE : THIS NAME MUST BE UNIQUE
+      # Use ubuntu-latest as the runner, because Ubuntu is based in Debian, and all of our machines are based in Debian
+      runs-on: ubuntu-latest
+      # Use the same base image as on our Dockerfile, to ensure that the runner machine is in the same starting state as our devcontainer machines
+      container:
+        image: python:3.11-bookworm
+
+# First step is to checkout the code (from github) into the Github Actions runner machine
+      steps:
+      - uses: actions/checkout@v4
+
+# Then we need to make the .env file (that we've just copied into the Github actions runner thanks to 'uses: actions/checkout@v4') accessible to the following steps run on the Github Actions runner machine
+      - name: Make the .env accessible to Github Actions
+        uses: c-py/action-dotenv-to-setenv@v2
+        with:
+          env-file: .env
+  
+# Then we reproduce the steps of the Dockerfile in our project, to install the necessary dependencies
+      - name: Install Docker
+        run: |
+          apt-get update -y && apt-get install -y ca-certificates curl gnupg \
+          && install -m 0755 -d /etc/apt/keyrings  \
+          && curl -fsSL https://download.docker.com/linux/debian/gpg | gpg --dearmor -o /etc/apt/keyrings/docker.gpg \
+          && chmod a+r /etc/apt/keyrings/docker.gpg \
+          && echo \
+              "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.gpg] https://download.docker.com/linux/debian \
+              $(. /etc/os-release && echo "$VERSION_CODENAME") stable" | \
+              tee /etc/apt/sources.list.d/docker.list > /dev/null \
+          && apt-get update -y
+  
+          VERSION_STRING=5:24.0.7-1~debian.12~bookworm && \
+          apt-get install -y docker-ce=$VERSION_STRING docker-ce-cli=$VERSION_STRING containerd.io docker-buildx-plugin docker-compose-plugin
+  
+      - name: Install 'task'
+        run: |
+          chmod +x .infra/assets/task_install.sh && sh .infra/assets/task_install.sh -d -b /usr/local/bin
+          
+      - name: Run 'task install'
+        run: |
+          task install
+
+# Then we reproduce the steps in our the postCreateCommand in our devcontainer.json file: this will put the Github runner machine in the same exact state as our devciontainer machines in which we developped our code
+      - name: postCreateCommand
+        run: |
+          task post_create_commands
+  
+# Finally, we can do whataver we came here to do: we write, step-by-step, the automatisation we want done by Github Actions
+      
+      - name: FIRST AUTOMATION
+        run: |
+          # RUN THE CODE OF YOUR AUTOMATION HERE
+
+

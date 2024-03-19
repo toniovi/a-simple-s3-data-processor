@@ -1,0 +1,31 @@
+{
+	// #SETUP_VARIABLES Change the name hereunder to the name of your project
+	// "name": "a-simple-s3-data-processor",
+
+	"dockerComposeFile": ["../compose.yaml", "../compose.extend.yaml"],
+	"service": "devcontainer",
+
+	"workspaceFolder": "/workspaces/${localWorkspaceFolderBasename}", // This is needed so that postCreateCommand can run in this same folder.
+
+	// Configure tool-specific properties.
+	"customizations": {
+		// Configure properties specific to VS Code.
+		"vscode": {
+            "settings": {
+                "terminal.integrated.shell.linux": "/bin/bash"
+            },
+			// Add the IDs of extensions you want installed when the container is created.
+			"extensions": [
+				"ms-toolsai.jupyter",
+				"ms-python.python"
+			]
+		}
+	}
+    
+    // Specific script for dev environment: config secrets if you're on local machine
+	,"initializeCommand": "bash .devcontainer/devcontainer-init.sh"
+
+    // Specific script for dev environment: config secrets if you're on local machine
+    ,"postCreateCommand": "task post_create_commands"
+
+}

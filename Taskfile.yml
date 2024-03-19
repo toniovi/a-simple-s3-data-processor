@@ -1,0 +1,561 @@
+version: '3'
+
+#This next 2 lines need to be uncommented and updated as a comma separated list of all of the Secrets names needed for this project to work when deployed in GCP's Cloud Run
+#env: 
+#  SECRETS: "DBT_ENV_SECRET_ACME_GCP_SERVICE_ACCOUNT_KEY_JSON,OPENAI_API_KEY,MISTRAL_API_KEY,ACME_AZURE_STORAGE_ACCOUNT_KLPDATAANALYTICS_CONN_STRING,ACME_AZURE_STORAGE_ACCOUNT_KLPDATARAW_CONN_STRING"
+
+dotenv: ['.env', 'local-mounted-folders/secrets/local-secrets.env']
+
+tasks:
+
+#===============================================================================
+# Project Automatization Tasks - This are some exemples, Code your own here! Link them to the .github/workflows .yml files
+#===============================================================================
+
+  demo_step_by_step:
+    cmds:
+      - |
+        cd dbt_data_transformations_and_dagster_orchestration/dagster_orchestration
+        DAGSTER_DBT_PARSE_PROJECT_ON_LOAD=1 dagster dev
+
+      - |
+        cd dbt_data_transformations_and_dagster_orchestration
+        dbt build
+        # Started at 13:13, Takes around XX Minutes
+
+      - task lint
+
+      - |
+        cd dbt_data_transformations_and_dagster_orchestration
+        dbt docs generate
+        dbt docs serve
+
+
+  dbt_run:
+    cmds:
+      - dbt run --full-refresh
+
+  dagster_cloud_agent_run:
+    cmds:
+      - dagster-cloud agent run
+      - #dagster-cloud workspace sync -w dagster_cloud.yaml
+
+  dagster_dev_for_demo:
+    cmds:
+      - DAGSTER_DBT_PARSE_PROJECT_ON_LOAD=1 dagster dev
+
+  lint_sql:
+    cmds:
+      - sqlfluff lint dbt_data_transformations_and_dagster_orchestration/models/silver --dialect duckdb
+
+
+  other_manual_tasks_after_install:
+    cmds:
+      - # Go to dbt Pipelines, do a dbt run (this will be using the local duckdb warehouse : the equivalent of your DataWarehouse)
+      - # Use Sling to sync all gold tables in the Datalake with the gold tables in Postgres
+      - # sling run --src-conn SLING_AZURE_STORAGE_GOLD --src-stream 'mart_xxxxxxxxx_logs.parquet' --tgt-conn LOCAL_POSTGRES_WAREHOUSE_PROD --tgt-object 'gold.mart_xxxxxx_logs' --mode full-refresh
+      - # Then Go to dbt Dashboards, do a dbt run (this will be using the local postgres : the equivalent of your Power Bi or Databricks or Postgres that's running your Dashboards)
+
+      - # Then in dbt_dashboards dir, follow the instructions on http://localhost:8080/createProject/cli
+      - #lightdash login http://localhost:3000 --token fe0e01cf52bdcc1364e8a348992764c6
+      - # To restart lightdash :         docker compose -f docker-compose.yml start
+
+
+
+#===============================================================================
+# Project Install Tasks
+#===============================================================================
+
+  install:
+    cmds:
+      - ## Install gcloud cli: CHOOSE ONE OR THE OTHER !
+      - # A. Install gcloud CLI (last version)
+      - #echo "deb [signed-by=/usr/share/keyrings/cloud.google.gpg] https://packages.cloud.google.com/apt cloud-sdk main" | tee -a /etc/apt/sources.list.d/google-cloud-sdk.list && curl https://packages.cloud.google.com/apt/doc/apt-key.gpg | apt-key --keyring /usr/share/keyrings/cloud.google.gpg  add - && apt-get update -y && apt-get install google-cloud-cli -y
+
+      - # B. Install gcloud CLI (pinned version)
+      - |
+        # Determine architecture
+        ARCH=$(uname -m)
+        if [ "$ARCH" = "x86_64" ]; then
+          URL="https://dl.google.com/dl/cloudsdk/channels/rapid/downloads/google-cloud-sdk-466.0.0-linux-x86_64.tar.gz"
+        elif [ "$ARCH" = "aarch64" ]; then
+          URL="https://dl.google.com/dl/cloudsdk/channels/rapid/downloads/google-cloud-sdk-466.0.0-linux-arm.tar.gz"
+        else
+          echo "Unidentified architecture, defaulting to trying to install x86_64"
+          URL="https://dl.google.com/dl/cloudsdk/channels/rapid/downloads/google-cloud-sdk-466.0.0-linux-x86_64.tar.gz"
+        fi
+
+        # Download the appropriate version
+        curl -O $URL
+
+        # Extract the downloaded file
+        tar zxvf google-cloud-sdk-466.0.0-linux-*.tar.gz
+
+        # Install the CLI
+        ./google-cloud-sdk/install.sh --quiet
+
+        # Clean up the downloaded and extracted files
+        rm google-cloud-sdk-466.0.0-linux-*.tar.gz
+        rm -rf google-cloud-sdk
+
+
+      - # Install azure CLI #TODO pin current version
+      - curl -sL https://aka.ms/InstallAzureCLIDeb | bash
+
+      - # Install python librairies #TODO freeze all of them
+      - pip install --upgrade pip && pip install -r requirements.txt
+
+      - # dbt: look for profile on this working directory
+      - ln -sr $PROJECT_ROOT/.dbt /root/.dbt  
+      - # https://www.baeldung.com/linux/too-many-levels-of-symlinks
+
+      - # Install autocompletion for Task
+      - task: install_task_completion
+
+      - task: install_sql_server_odbc_driver
+      - task: install_databricks_odbc_driver
+
+      - # Take the env var DBT_ENV_SECRET_GCP_SERVICE_ACCOUNT_KEY_JSON, write it to a file in the standard location for Google Service Account key files
+      - # Create the directory if it doesn't exist
+      - mkdir -p /root/.gcp/
+      - echo $DBT_ENV_SECRET_GCP_SERVICE_ACCOUNT_KEY_JSON > /root/.gcp/key.json
+
+      - echo 'Success 🥳 !'
+
+  install_task_completion:
+    internal: true
+    cmds:
+      - apt-get update
+      - apt-get install -y bash-completion
+
+      - # Add bash completion to task
+      - chmod +x .infra/assets/task.bash
+      - echo "source $(pwd)/.infra/assets/task.bash" >> ~/.bashrc
+
+      - echo "if [ -f /etc/bash_completion ]; then" >> ~/.bashrc
+      - echo "    . /etc/bash_completion" >> ~/.bashrc
+      - echo "fi" >> ~/.bashrc
+
+  install_databricks_odbc_driver:
+    cmds:
+    - unzip .infra/assets/SimbaSparkODBC-2.7.7.1016-Debian-64bit.zip -d .infra/assets/SimbaSparkODBC
+    - apt-get update
+    - apt-get install -y libsasl2-modules-gssapi-mit
+    - dpkg -i .infra/assets/SimbaSparkODBC/simbaspark_2.7.7.1016-2_amd64.deb
+    - # Delete the .infra/assets/SimbaSparkODBC folder and its contents
+    - rm -rf .infra/assets/SimbaSparkODBC
+
+  install_sql_server_odbc_driver:
+    cmds:
+      - apt-get update
+      - apt-get install -y unixodbc odbcinst
+      - |
+        TEMPDIR=$(mktemp -d)
+        cd $TEMPDIR
+        ARCH=$(uname -m)
+        if [ "$ARCH" = "x86_64" ]; then
+          wget https://packages.microsoft.com/debian/12/prod/pool/main/m/msodbcsql18/msodbcsql18_18.3.2.1-1_amd64.deb
+          ARCH=amd64
+        elif [ "$ARCH" = "aarch64" ]; then
+          wget https://packages.microsoft.com/debian/12/prod/pool/main/m/msodbcsql18/msodbcsql18_18.3.2.1-1_arm64.deb
+          ARCH=arm64
+        else
+          echo "Unsupported architecture"
+          exit 1
+        fi
+ 
+        ACCEPT_EULA=Y dpkg -i msodbcsql18_18.3.2.1-1_${ARCH}.deb
+
+        cd -
+        rm -r $TEMPDIR
+
+
+  post_create_commands:
+    cmds:
+      # In post Create Because it needs to have local-mounted-folders/secrets/local-secrets.env mounted
+      - task: make_local_secrets_available_to_bash 
+
+      # Because needs to be after make_local_secrets_available_to_bash
+      - task: make_env_vars_available_to_bash
+
+      # To be able to import python modules in the project root easily
+      - task: add_project_root_to_pythonpath
+
+      - task: install_postgres
+      - task: install_duck_db
+      - #task: install_lightdash
+      - #task: install_node_js
+      - #task: run_lightdash
+      - task: install_azcopy
+
+      - apt-get -y install nano
+
+      - echo 'postCreateCommand Success 🥳 !'
+
+
+  make_local_secrets_available_to_bash:
+    #internal: true # Needs to be run by bash, not task
+    cmds:
+      - # If ./local-mounted-folders/secrets/local-secrets.env exists, then create a symlink to it in the root folder
+      - if [ -f ./local-mounted-folders/secrets/local-secrets.env ]; then ln -srf ./local-mounted-folders/secrets/local-secrets.env ./local-secrets.env; fi
+
+      - # If ./local-secrets.env exists, then export the local-secrets.env varibales into root's bashrc file
+      - if [ -f ./local-secrets.env ]; then echo "set -o allexport && source $(pwd)/local-secrets.env && set +o allexport" >> ~/.bashrc; fi
+
+      - # If ./local-secrets.env exists, then export the local-secrets.env varibales into root's profile file
+      - if [ -f ./local-secrets.env ]; then echo "set -o allexport && source $(pwd)/local-secrets.env && set +o allexport" >> ~/.profile; fi
+
+  make_env_vars_available_to_bash:
+    internal: true
+    cmds:
+      - # Finally, export the .env env variables into root's bashrc file
+      - echo "set -o allexport && source $(pwd)/.env && set +o allexport" >> ~/.bashrc
+      - echo "set -o allexport && source /workspaces/${PROJECT_NAME}/.env && set +o allexport" >> ~/.bashrc #this is gold : https://stackoverflow.com/a/30969768
+ 
+      - # Now do the same for ~/.profile
+      - echo "set -o allexport && source $(pwd)/.env && set +o allexport" >> ~/.profile
+      - echo "set -o allexport && source /workspaces/${PROJECT_NAME}/.env && set +o allexport" >> ~/.profile #before this, bash was working, but not jupyter notebooks (no access to the env vars in .env)
+ 
+      - echo 'make_env_vars_available_to_bash Success 🥳 !'
+
+  add_project_root_to_pythonpath:
+    cmds:
+      # First for normal python
+      - echo 'export PYTHONPATH="$PYTHONPATH:${PROJECT_ROOT}"' >> ~/.bashrc
+      - echo 'export PYTHONPATH="$PYTHONPATH:${PROJECT_ROOT}"' >> ~/.profile
+
+      # Then for jupyter (wont affect VS Code's Jupyter implmentation)
+      - echo 'export JUPYTER_PATH="$JUPYTER_PATH:${PROJECT_ROOT}"' >> ~/.bashrc
+      - echo 'export JUPYTER_PATH="$JUPYTER_PATH:${PROJECT_ROOT}"' >> ~/.profile
+
+      # Then for ipython
+      - |
+        if [ -f ~/.ipython/profile_default/ipython_config.py ]; then
+          echo 'c.InteractiveShellApp.exec_lines = [' >> ~/.ipython/profile_default/ipython_config.py
+          echo '     "import sys,os; sys.path.append(os.getenv(\"PROJECT_ROOT\"))",' >> ~/.ipython/profile_default/ipython_config.py
+          echo ']' >> ~/.ipython/profile_default/ipython_config.py
+        else
+          mkdir -p ~/.ipython/profile_default
+          echo '' > ~/.ipython/profile_default/ipython_config.py
+          echo 'c.InteractiveShellApp.exec_lines = [' >> ~/.ipython/profile_default/ipython_config.py
+          echo '     "import sys,os; sys.path.append(os.getenv(\"PROJECT_ROOT\"))",' >> ~/.ipython/profile_default/ipython_config.py
+          echo ']' >> ~/.ipython/profile_default/ipython_config.py
+        fi
+
+  install_postgres:
+    cmds:
+      - task: install_psql
+      - sudo -u postgres pg_ctlcluster start 15 main
+      - #https://askubuntu.com/questions/385416/pg-ctl-command-not-found-what-package-has-this-command
+      - # sudo -u postgres pg_ctlcluster stop 15 main
+      - # GOOD GUIDE HERE FOR POSTGRES : https://linuxize.com/post/how-to-install-postgresql-on-debian-10/
+      
+      - # to get into posgres : sudo -u postgres psql
+      - sudo -u postgres psql -c "CREATE USER ${POSTGRES_USER} WITH PASSWORD '${POSTGRES_PASSWORD}';"
+
+      - sudo -u postgres psql -c "CREATE DATABASE ${POSTGRES_DATABASE_NAME};"
+      - sudo -u postgres psql -c "ALTER DATABASE ${POSTGRES_DATABASE_NAME} OWNER TO ${POSTGRES_USER};"
+
+      - sudo -u postgres psql -c "GRANT ALL PRIVILEGES ON DATABASE ${POSTGRES_DATABASE_NAME} TO ${POSTGRES_USER};"
+      
+      - psql postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@localhost:5432/${POSTGRES_DATABASE_NAME} -c "CREATE SCHEMA ${POSTGRES_RAW_DATA_SCHEMA};"
+
+      - sudo -u postgres psql -c "ALTER USER ${POSTGRES_USER} SET search_path TO ${POSTGRES_RAW_DATA_SCHEMA};"
+
+      - sudo -u postgres pg_ctlcluster stop 15 main
+      - sudo -u postgres pg_ctlcluster start 15 main
+
+      - pip install "psycopg[c]"
+
+      - echo 'Success install_postgres 🥳 !'
+
+  install_psql:
+    cmds:
+      - # Install postgres
+      - # Now install postgres (v15 because https://cloud.google.com/sql/docs/postgres/db-versions)
+      - apt-get update
+      - apt-get install -y sudo
+      - apt-get install -y lsb-release
+      - #
+      - sh -c 'echo "deb https://apt.postgresql.org/pub/repos/apt $(lsb_release -cs)-pgdg main" > /etc/apt/sources.list.d/pgdg.list'
+      - wget --quiet -O - https://www.postgresql.org/media/keys/ACCC4CF8.asc | apt-key add -
+      - apt-get update
+      - apt-get -y install postgresql-15
+      - apt-get -y install postgresql-common # (or:) apt-get -y install postgresql-contrib
+
+      - apt-get install -y nano
+      - # sudo -u postgres psql -t -P format=unaligned -c 'show hba_file'; # to show posgresql file
+      - # /etc/postgresql/15/main/pg_hba.conf
+      - # Run nano /etc/postgresql/15/main/pg_hba.conf
+      - # put everything in 'trust'
+
+      - # PROGRAMMATICALLY : Use sed to replace 'peer' and 'scram-sha-256' with 'trust'
+      - |
+        # Define the file path
+        file_path="/etc/postgresql/15/main/pg_hba.conf"
+
+        # Use sed to replace 'peer' and 'scram-sha-256' with 'trust'
+        sed -i 's/peer/trust/g' $file_path
+        sed -i 's/scram-sha-256/trust/g' $file_path
+
+  install_duck_db:
+    cmds:
+      - # Need to build from source since they don't support arm for extensions https://github.com/duckdb/duckdb/issues/8035
+      - apt-get update
+      - apt-get install -y g++ git cmake ninja-build libssl-dev
+      - |
+        git clone --depth 1 --branch v0.9.2 https://github.com/duckdb/duckdb
+        cd duckdb/tools/pythonpkg
+        export BUILD_PYTHON=1
+        export BUILD_HTTPFS=1
+        export GEN=ninja
+        pip uninstall duckdb -y
+        pip install .
+      - # Now remove the duckdb folder
+      - rm -rf duckdb
+      - # Now install dbt-duckdb
+      - pip install dbt-duckdb
+      - pip install adlfs
+
+      - # Install the cli
+      - |
+        ARCH=$(uname -m)
+
+        if [[ "$ARCH" == "x86_64" ]]; then
+            DUCKDB_URL="https://github.com/duckdb/duckdb/releases/download/v0.10.0/duckdb_cli-linux-amd64.zip"
+        elif [[ "$ARCH" == "aarch64" ]]; then
+            DUCKDB_URL="https://github.com/duckdb/duckdb/releases/download/v0.10.0/duckdb_cli-linux-aarch64.zip"
+        else
+            echo "Unsupported architecture: $ARCH"
+            exit 1
+        fi
+
+        # Download the file
+        wget -O duckdb.zip $DUCKDB_URL
+
+        # Uncompress the file
+        unzip duckdb.zip
+
+        # Move duckdb to /usr/local/bin
+        sudo mv duckdb /usr/local/bin/
+
+        # Clean up
+        rm -rf duckdb.zip
+
+      - echo 'Success install_duck_db 🥳 !'
+
+  install_lightdash:
+    cmds:
+      - # Install lightdash
+      - |
+        wget https://github.com/lightdash/lightdash/archive/refs/tags/0.1015.1.tar.gz
+        tar -xzf 0.1015.1.tar.gz
+        rm 0.1015.1.tar.gz
+        mv lightdash-0.1015.1 lightdash
+        cd lightdash
+
+        # The file we want to update
+        FILE=".env"
+
+        # The variables we want to change and their new values
+        declare -A vars
+        vars=(
+            ["PGUSER"]="${POSTGRES_USER}"
+            ["PGPASSWORD"]="${POSTGRES_PASSWORD}"
+            ["LIGHTDASH_SECRET"]="${LIGHTDASH_SECRET}"
+            ["DBT_PROJECT_DIR"]="${DBT_PROJECT_DIR_GOLD}"
+        )
+
+        # Build the sed command
+        SED_CMD=""
+        for var in "${!vars[@]}"; do
+            SED_CMD+=" -e 's#^$var=.*#$var=${vars[$var]}#'"
+        done
+
+        # Use eval to run the sed command
+        eval "sed -i $SED_CMD $FILE"
+        
+      - # Now, if your machine is arm, add a platform line to the lightdash service in the docker-compose.yml file
+      - |
+        # Check if the current system is ARM64
+        if uname -m | grep -q 'aarch64'; then
+            # Check if the line already exists
+            if ! grep -q "platform: linux/x86_64" lightdash/docker-compose.yml; then
+                # Use awk to add the platform line after the first occurrence of lightdash
+                awk '!p && /lightdash:/{p=1;print;print "    platform: linux/x86_64";next}1' lightdash/docker-compose.yml > temp && mv temp lightdash/docker-compose.yml
+            fi
+        fi
+
+      - # To start lightdash: docker compose -f docker-compose.yml start
+      - echo 'Success install_lightdash 🥳 !'
+
+
+  run_lightdash:
+    cmds:
+      - # cd to lightdash dir and Run Lightdash
+      - |
+        cd lightdash
+        service docker start
+        docker compose -f docker-compose.yml --env-file .env up --detach --remove-orphans
+
+      - # in dbt_dashboards dir
+      - #lightdash login http://localhost:3000 --token fe0e01cf52bdcc1364e8a348992764c6
+      - # To restart lightdash :         docker compose -f docker-compose.yml start
+
+      - echo 'Success run_lightdash 🥳 !'
+
+
+  install_node_js:
+    cmds:
+      - # Install nodejs
+      - curl -fsSL https://deb.nodesource.com/setup_21.x | bash - && apt-get install -y nodejs
+      - # Then install lighdash cli
+      - npm install -g @lightdash/cli@0.1015.2
+
+  install_sling: # MAy not be needed if using pip install sling
+    cmds:
+      - # Install sling
+      - # sling_darwin_arm64.tar.gz
+      - # or
+      - # sling_linux_amd64.tar.gz 
+      - |
+        curl -LO 'https://github.com/slingdata-io/sling-cli/releases/latest/download/sling_darwin_arm64.tar.gz'
+
+        tar xf sling_darwin_arm64.tar.gz
+
+        rm -f sling_darwin_arm64.tar.gz
+
+        chmod +x sling
+
+        mv sling /usr/local/bin
+
+  install_azcopy:
+    cmds:
+      - # Install azcopy
+      - |
+        # Determine system architecture
+        ARCH=$(uname -m)
+
+        if [[ "$ARCH" == "x86_64" ]]; then
+            AZCOPY_URL="https://aka.ms/downloadazcopy-v10-linux"
+        elif [[ "$ARCH" == "aarch64" ]]; then
+            AZCOPY_URL="https://aka.ms/downloadazcopy-v10-linux-arm64"
+        else
+            echo "Unsupported architecture: $ARCH"
+            exit 1
+        fi
+
+        # Download the file
+        wget -O azcopy.tar.gz $AZCOPY_URL
+
+        # Uncompress the file
+        tar -xf azcopy.tar.gz
+
+        # Move azcopy to /usr/local/bin
+        sudo mv azcopy_linux*/azcopy /usr/local/bin/
+
+        # Clean up
+        rm -rf azcopy.tar.gz azcopy_linux*
+
+
+
+#===============================================================================
+# The following are the task related to deploying on Google Cloud Run
+#===============================================================================
+
+  build:
+    cmds:
+      - docker build -t ${PROJECT_NAME} .
+
+  run: #manque secrets management!
+    cmds:
+      - |
+        #Run docker container image built
+        docker run -p 127.0.0.1:8080:8080 ${PROJECT_NAME}
+
+
+  # Following is, for reference, the code that auto deploys the container to Google Cloud Platform
+  deploy:
+    cmds:
+      - task: login_to_gcloud
+      - task: update_secrets_in_gcloud
+
+      - #deploy: push into Google Artifact Registry, then deploy to Cloud Run
+      - docker build -t ${PROJECT_NAME} .
+      
+      - docker tag ${PROJECT_NAME}:latest ${GCLOUD_ARTIFACT_REGION}/${GCLOUD_PROJECT}/${GCLOUD_ARTIFACT_REGISTRY}/${PROJECT_NAME}:latest
+      - docker push ${GCLOUD_ARTIFACT_REGION}/${GCLOUD_PROJECT}/${GCLOUD_ARTIFACT_REGISTRY}/${PROJECT_NAME}:latest
+
+      - |
+
+        # This will take the SECRETS env var and create the formatted string for the --update-secrets flag
+        secrets_array=($(echo $SECRETS | tr "," "\n")); final_string=""; for secret in "${secrets_array[@]}"; do final_string+="$secret=$secret:latest,"; done; final_string=${final_string%,}; echo "$final_string"
+
+
+        gcloud run deploy ${PROJECT_NAME} \
+          --image=${GCLOUD_ARTIFACT_REGION}/${GCLOUD_PROJECT}/${GCLOUD_ARTIFACT_REGISTRY}/${PROJECT_NAME}:latest \
+          --allow-unauthenticated \
+          --service-account=${GCLOUD_SERVICE_ACCOUNT} \
+          --max-instances=10 \
+          --cpu-boost \
+          --session-affinity \
+          --region=europe-west9 \
+          --project=${GCLOUD_PROJECT} \
+          --update-secrets=$final_string
+
+  login_to_gcloud:
+    cmds:
+      - echo ${DBT_ENV_SECRET_GCP_SERVICE_ACCOUNT_KEY_JSON} | gcloud auth activate-service-account ${GCLOUD_DEPLOYMENT_SERVICE_ACCOUNT} --key-file=-
+      - gcloud config set project ${GCLOUD_PROJECT} --quiet
+      - gcloud auth configure-docker ${GCLOUD_ARTIFACT_REGION} --quiet
+
+  update_secrets_in_gcloud:
+    cmds:
+      - |
+        # echo $SECRETS | tr ',' '\n' | while read SECRET; do
+        #     echo "${SECRET}"
+        #     echo "$(eval echo -n \$${SECRET})"
+        #     SECRET_VALUE=$(eval echo -n \$${SECRET})
+        #     if ! gcloud secrets describe ${SECRET} > /dev/null 2>&1; then
+        #       echo "Creating secret ${SECRET}..."
+        #       echo -n ${SECRET_VALUE} | gcloud secrets create ${SECRET} --data-file=-
+        #     fi
+        # done
+
+        echo $SECRETS | tr ',' '\n' | while read SECRET; do
+            echo "${SECRET}"
+            SECRET_VALUE=$(eval echo -n \$${SECRET})
+            if gcloud secrets describe ${SECRET} > /dev/null 2>&1; then
+              echo "Deleting secret ${SECRET}..."
+              gcloud secrets delete ${SECRET} --quiet
+            fi
+            echo "Creating secret ${SECRET}..."
+            echo -n ${SECRET_VALUE} | gcloud secrets create ${SECRET} --data-file=-
+        done
+
+
+
+#===============================================================================
+# What follows are some exemples of other tasks to automatize
+#===============================================================================
+
+
+  format:
+    cmds:
+      - #TODO
+      - #black *.py mylib/*.py
+
+  lint:
+    dir: src
+    cmds:
+      - #TODO
+      - #flake8 or #pylint 
+      - pylint ./dbt_data_transformations_and_dagster_orchestration/dagster_orchestration/dagster_orchestration --disable=R,C
+      - echo 'Successfully lint 🥳 !'
+
+  test:
+    cmds:
+      - #TODO
+      - #python -m pytest -vv --cov=mylib --cov=main test_*.py
+
+

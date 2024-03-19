@@ -1,0 +1,5 @@
+locations:
+  - location_name: {"env": "PROJECT_NAME"}
+    code_source:
+      package_name: dagster_orchestration
+    executable_path: /usr/local/bin/python
