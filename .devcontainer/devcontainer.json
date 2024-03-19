@@ -1,6 +1,5 @@
 {
-	// #SETUP_VARIABLES Change the name hereunder to the name of your project
-	// "name": "a-simple-s3-data-processor",
+	"name": "a-simple-s3-data-processor",
 
 	"dockerComposeFile": ["../compose.yaml", "../compose.extend.yaml"],
 	"service": "devcontainer",
