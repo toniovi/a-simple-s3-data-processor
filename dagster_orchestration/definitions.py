@@ -1,14 +1,27 @@
+#TB! load env ariables
+import our_utilities; our_utilities.load_env_with_substitutions()
+
+import os
+
 from dagster import Definitions
+
+from .assets.from_events_data.events import the_s3_files_as_dict_of_dataframes, get_new_s3_files, materialize_the_assets_in_dagster
 from .sensors.sensors import check_for_new_s3_files
-from .assets.from_events_data.events import create_asset_from_s3_file, process_s3_files_job
-from .schedules import launch_sensor_every_five_minutes
+#from .schedules import launch_sensor_every_five_minutes
+from .resources.resources import MyAWSS3Resource
+
+
+print("Bucket name:", os.getenv("AWS_S3_BUCKET_NAME"))
 
 defs = Definitions(
-    assets=[create_asset_from_s3_file],
-    jobs=[process_s3_files_job],
+    assets=[the_s3_files_as_dict_of_dataframes, get_new_s3_files, materialize_the_assets_in_dagster],
     sensors=[check_for_new_s3_files],
-    schedules = [
-        launch_sensor_every_five_minutes,
-    ],
+    resources={
+        "s3_with_bucket": MyAWSS3Resource(
+            bucket_name=os.getenv("AWS_S3_BUCKET_NAME")
+        ),
+    },
 
 )
+
+

@@ -1,4 +1,4 @@
-#TB! load env ariables
+#TB! load env variables
 from dotenv import load_dotenv, find_dotenv
 load_dotenv(find_dotenv('local-secrets.env'), override=True)
 load_dotenv(find_dotenv('.env'), override=True)

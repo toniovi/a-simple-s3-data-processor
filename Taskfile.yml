@@ -9,27 +9,23 @@ dotenv: ['.env', 'local-mounted-folders/secrets/local-secrets.env']
 tasks:
 
 #===============================================================================
-# Project Automatization Tasks - This are some exemples, Code your own here! Link them to the .github/workflows .yml files
+# Some Project Automatization Tasks, and Memos/Notes
 #===============================================================================
 
   demo_step_by_step:
     cmds:
+      - task lint
       - |
-        cd dbt_data_transformations_and_dagster_orchestration/dagster_orchestration
         DAGSTER_DBT_PARSE_PROJECT_ON_LOAD=1 dagster dev
 
       - |
-        cd dbt_data_transformations_and_dagster_orchestration
+        cd dbt_data_transformations
         dbt build
-        # Started at 13:13, Takes around XX Minutes
-
-      - task lint
 
       - |
-        cd dbt_data_transformations_and_dagster_orchestration
+        cd dbt_data_transformations
         dbt docs generate
         dbt docs serve
-
 
   dbt_run:
     cmds:
@@ -40,13 +36,13 @@ tasks:
       - dagster-cloud agent run
       - #dagster-cloud workspace sync -w dagster_cloud.yaml
 
-  dagster_dev_for_demo:
+  dagster_dev:
     cmds:
       - DAGSTER_DBT_PARSE_PROJECT_ON_LOAD=1 dagster dev
 
   lint_sql:
     cmds:
-      - sqlfluff lint dbt_data_transformations_and_dagster_orchestration/models/silver --dialect duckdb
+      - sqlfluff lint dbt_data_transformations/models --dialect duckdb
 
 
   other_manual_tasks_after_install:
