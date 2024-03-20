@@ -11,8 +11,6 @@ from .sensors.sensors import check_for_new_s3_files
 from .resources.resources import MyAWSS3Resource
 
 
-print("Bucket name:", os.getenv("AWS_S3_BUCKET_NAME"))
-
 defs = Definitions(
     assets=[the_s3_files_as_dict_of_dataframes, get_new_s3_files, materialize_the_assets_in_dagster],
     sensors=[check_for_new_s3_files],
