@@ -19,7 +19,7 @@ I've configured a taskfile task for this, you can simply run:
 
 
 
-# A simple S3 data processor — PoC
+# **The Project**: A simple S3 data processor — PoC
 
 Hereunder the Technical Requirements Document (TRD), which offers a comprehensive overview of the requirements for this Proof of Concept (PoC).
 
