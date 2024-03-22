@@ -1,10 +1,16 @@
-## On Friday 22
+# Presenting you my Workflow 
+
+## Some Project Evolutions I've Identified
+- Config a [Run Coordinator](https://docs.dagster.io/deployment/run-coordinator) for being able to accept concurring runs.
+- ...
+
+## On Friday 22/03/2024
 Started refactoring from this inspiration: https://dagster.io/blog/dynamic-partitioning
 It so much better (almost perfectly) fits the requirements!
 
 ### DONE! Refacto is in the `feature_dynamic_partitioning` branch: ready to start testing and merge if everything OK
 
-## How To
+## How To — Installing your own Dev Workbench and Contributing to the Project
 - You can use github Codespaces to quickly dev in this project, everything's been configured to install and start a functioning machine with Dagster (and all necessary dependencies) installed:
   - <img width="716" alt="image" src="https://github.com/toniovi/a-simple-s3-data-processor/assets/131332847/6a32acd4-a0de-4210-a5d0-3d82e45c042f">
 - Once the machine has finished installing, you can run Dagster in dev mode.
@@ -13,7 +19,7 @@ I've configured a taskfile task for this, you can simply run:
 
 
 
-# A simple S3 data processor — PoC
+# **The Project**: A simple S3 data processor — PoC
 
 Hereunder the Technical Requirements Document (TRD), which offers a comprehensive overview of the requirements for this Proof of Concept (PoC).
 
