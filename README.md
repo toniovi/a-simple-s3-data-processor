@@ -1,3 +1,38 @@
+# Demo of the MVP: Step-by-Step
+## The S3 Bucket
+- Let's suppose we have this aws bucket:
+  - <img width="466" alt="image" src="https://github.com/toniovi/a-simple-s3-data-processor/assets/131332847/e501447f-d995-480f-92e7-850c456996da">
+- With some `events.csv` files:
+  - <img width="501" alt="image" src="https://github.com/toniovi/a-simple-s3-data-processor/assets/131332847/1ab88e5a-08e4-4938-896f-294970a1247e">
+
+## The Codespaces
+- First, Create a Codespaces on this repo
+  - <img width="527" alt="image" src="https://github.com/toniovi/a-simple-s3-data-processor/assets/131332847/951ecfde-10da-4e14-9a0f-cf46e1305536">
+- _and wait for installation to finish:_
+  - <img width="540" alt="image" src="https://github.com/toniovi/a-simple-s3-data-processor/assets/131332847/1be4797f-5842-4bfb-a4c3-587e3cd1bf00">
+
+## Dagster
+- Run `task dagster_dev`
+- Go to your port 3000
+  - <img width="474" alt="image" src="https://github.com/toniovi/a-simple-s3-data-processor/assets/131332847/41d27400-321e-4380-b8b1-271fbe654f1f">
+- Your two Dagster `assets` have not yet been _"materialized"_:
+  - <img width="1316" alt="image" src="https://github.com/toniovi/a-simple-s3-data-processor/assets/131332847/7238e2e9-499f-4735-981b-952320ddb182">
+- And your `sensor` is not running:
+  - <img width="1036" alt="image" src="https://github.com/toniovi/a-simple-s3-data-processor/assets/131332847/7fb905fb-c905-416b-8616-62f8c0aeeeb1">
+> The sensor (to automatically _"materialize"_ all files in the bucket) is not yet functional
+> So let's just manually _"materialize"_ one of the csv files:
+  - <img width="813" alt="image" src="https://github.com/toniovi/a-simple-s3-data-processor/assets/131332847/53556bdf-2f6a-456c-9595-4a0b9991d99a">
+- Let's say, the january 2022 file:
+  - <img width="688" alt="image" src="https://github.com/toniovi/a-simple-s3-data-processor/assets/131332847/cf9cae0f-27a6-4e80-b15a-ab7f9eb91a4c">
+- Launch the run:
+  - <img width="741" alt="image" src="https://github.com/toniovi/a-simple-s3-data-processor/assets/131332847/6b18c754-5056-4da2-bf56-3a5bd7f247c8">
+
+## The result
+> A `pickled` Pandas dataframe, available to any downstream process, stored in `/workspaces/a-simple-s3-data-processor/storage/read_monthly_csv/2022_01`
+<img width="886" alt="image" src="https://github.com/toniovi/a-simple-s3-data-processor/assets/131332847/5d08c373-a145-45b1-a91d-50ba9883adb6">
+<img width="692" alt="image" src="https://github.com/toniovi/a-simple-s3-data-processor/assets/131332847/42be2291-4037-409b-bc04-853dc5dde1e5">
+
+
 # Presenting you my Workflow 
 
 ## Some Project Evolutions I've Identified
