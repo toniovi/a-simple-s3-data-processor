@@ -184,6 +184,10 @@ tasks:
       - #task: run_lightdash
       - task: install_azcopy
 
+      - # install tree for printing project dirs for Copilot
+      - apt-get -y update
+      - apt-get -y install tree
+
       - apt-get -y install nano
 
       - echo 'postCreateCommand Success 🥳 !'
