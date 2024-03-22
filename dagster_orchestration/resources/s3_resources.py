@@ -18,18 +18,27 @@ class MyAWSS3Resource(ConfigurableResource):
         s3 = boto3.client('s3', config=Config(signature_version=UNSIGNED))
         return s3
 
+
     def list_month_directories(self):
         s3_client = self.create_s3_client()
         paginator = s3_client.get_paginator('list_objects_v2')
-        page_iterator = paginator.paginate(Bucket=self.bucket_name, Delimiter='/')
 
         month_directories = []
-        for page in page_iterator:
-            for prefix_info in page.get('CommonPrefixes', []):
-                prefix = prefix_info['Prefix']
-                # Assuming the prefix format is "YYYY/MM/", we strip the "/" and replace with "_"
-                stripped_prefix = prefix.strip('/').replace('/', '_')
-                month_directories.append(stripped_prefix)
+        # First, get the top-level directories (i.e., years)
+        year_iterator = paginator.paginate(Bucket=self.bucket_name, Delimiter='/')
+        for year_page in year_iterator:
+            for year_info in year_page.get('CommonPrefixes', []):
+                year_prefix = year_info['Prefix']
+                # Then, for each year, get the subdirectories (i.e., months)
+                month_iterator = paginator.paginate(Bucket=self.bucket_name, Prefix=year_prefix, Delimiter='/')
+                for month_page in month_iterator:
+                    for month_info in month_page.get('CommonPrefixes', []):
+                        month_prefix = month_info['Prefix']
+                        # Check if 'events.csv' exists in the directory
+                        events_file = s3_client.list_objects_v2(Bucket=self.bucket_name, Prefix=f'{month_prefix}events.csv')
+                        if 'Contents' in events_file:  # 'Contents' will be present if the file exists
+                            # Format the prefix as "YYYY_MM"
+                            formatted_prefix = month_prefix.strip('/').replace('/', '_')
+                            month_directories.append(formatted_prefix)
 
         return month_directories
-
