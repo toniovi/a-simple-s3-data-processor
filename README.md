@@ -10,7 +10,7 @@ It so much better (almost perfectly) fits the requirements!
 
 ### DONE! Refacto is in the `feature_dynamic_partitioning` branch: ready to start testing and merge if everything OK
 
-## How To
+## How To — Installing your own Dev Workbench and Contributing to the Project
 - You can use github Codespaces to quickly dev in this project, everything's been configured to install and start a functioning machine with Dagster (and all necessary dependencies) installed:
   - <img width="716" alt="image" src="https://github.com/toniovi/a-simple-s3-data-processor/assets/131332847/6a32acd4-a0de-4210-a5d0-3d82e45c042f">
 - Once the machine has finished installing, you can run Dagster in dev mode.
