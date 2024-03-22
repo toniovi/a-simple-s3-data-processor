@@ -1,4 +1,10 @@
-## On Friday 22
+# Presenting you my Workflow 
+
+## Some Project Evolutions I've Identified
+- Config a [Run Coordinator](https://docs.dagster.io/deployment/run-coordinator) for being able to accept concurring runs.
+- ...
+
+## On Friday 22/03/2024
 Started refactoring from this inspiration: https://dagster.io/blog/dynamic-partitioning
 It so much better (almost perfectly) fits the requirements!
 
