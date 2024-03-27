@@ -460,7 +460,7 @@ tasks:
 
 
 #===============================================================================
-# The following are the task related to deploying on Google Cloud Run
+# The following are tasks related to deploying on Google Cloud Run
 #===============================================================================
 
   build:
@@ -536,7 +536,7 @@ tasks:
 
 
 #===============================================================================
-# What follows are some exemples of other tasks to automatize
+# Other recurring tasks
 #===============================================================================
 
 
